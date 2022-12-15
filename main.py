@@ -28,7 +28,7 @@ def log_evidence(model: BayesianLinearRegression, X, y):
 
     log_evidence_calc = 0.5 * np.log(np.linalg.det(map_cov) / np.linalg.det(sig)) \
                         - 0.5 * ((map - mu).T @ np.linalg.inv(sig) @ (map - mu)
-                                 + (1/n)*(np.linalg.norm(y - H@map))
+                                 + (1/n)*(np.linalg.norm(y - H@map)**2)
                                  + N*np.log(n)) \
                         - (p/2)*np.log(2*np.pi)
     return log_evidence_calc
@@ -80,7 +80,6 @@ def main():
         plt.show()
 
         # Plot bayesian regression of the best and worse models according to evidence
-        # TODO: Check, not sure if we need to predict and plot predictions or not
         plt.figure()
         for d in [best_model_deg, worse_model_deg]:
             pbf = polynomial_basis_functions(d)
@@ -92,33 +91,41 @@ def main():
 
             plt.fill_between(x, pred - std, pred + std,
                              alpha=.5, label='confidence interval')
-            label = 'best model' if d == best_model_deg else 'worse model'
+            label = 'best evidence' if d == best_model_deg else 'worse evidence'
             plt.plot(x, pred, lw=2, label=label)
-        plt.scatter(x, f(x), c='blue', s=10, alpha=0.2)
         plt.legend()
         plt.show()
 
-    # # ------------------------------------------------------ section 2.2
-    # # load relevant data
-    # nov16 = np.load('nov162020.npy')
-    # hours = np.arange(0, 24, .5)
-    # train = nov16[:len(nov16) // 2]
-    # hours_train = hours[:len(nov16) // 2]
-    #
-    # # load prior parameters and set up basis functions
-    # mu, cov = load_prior()
-    # pbf = polynomial_basis_functions(7)
-    #
-    # noise_vars = np.linspace(.05, 2, 100)
-    # evs = np.zeros(noise_vars.shape)
-    # for i, n in enumerate(noise_vars):
-    #     # calculate the evidence
-    #     mdl = BayesianLinearRegression(mu, cov, n, pbf)
-    #     ev = log_evidence(mdl, hours_train, train)
-    #     # <your code here>
-    #
-    # # plot log-evidence versus amount of sample noise
-    # # <your code here>
+    # ------------------------------------------------------ section 2.2
+    # load relevant data
+    nov16 = np.load('nov162020.npy')
+    hours = np.arange(0, 24, .5)
+    train = nov16[:len(nov16) // 2]
+    hours_train = hours[:len(nov16) // 2]
+
+    # load prior parameters and set up basis functions
+    mu, cov = load_prior()
+    pbf = polynomial_basis_functions(7)
+
+    noise_vars = np.linspace(.05, 2, 100)
+    evs = np.zeros(noise_vars.shape)
+    for i, n in enumerate(noise_vars):
+        # calculate the evidence
+        mdl = BayesianLinearRegression(mu, cov, n, pbf)
+        ev = log_evidence(mdl, hours_train, train)
+        # <your code here>
+        evs[i] = ev
+
+    # plot log-evidence versus amount of sample noise
+    # <your code here>
+    best_evidence_noise = round(noise_vars[np.argmax(evs)], 2)
+
+    plt.figure()
+    plt.plot(noise_vars, evs, lw=2)
+    plt.title(f'Noise with max-evidence: {best_evidence_noise}')
+    plt.xlabel('Sample Noise')
+    plt.ylabel('Log-Evidence')
+    plt.show()
 
 
 if __name__ == '__main__':
